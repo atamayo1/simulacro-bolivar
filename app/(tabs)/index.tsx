@@ -1,14 +1,21 @@
-import { Task } from '@/interfaces/tasks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HeaderTitle } from '@react-navigation/elements';
 import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 
+type TaskType = {
+    id: string;
+    title: string;
+    completed: boolean;
+    dueDate?: string;
+};
+
 export default function TasksScreen() {
-    const [text, setText] = useState<string>('');
-    const [tasks, setTasks] = useState<Task[]>([]);
+    const [text, setText] = useState('');
+    const [tasks, setTasks] = useState<TaskType[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         const loadTasks = async () => {
@@ -20,7 +27,7 @@ export default function TasksScreen() {
             } catch (error) {
                 console.error('Error loading tasks', error);
             }
-        }
+        };
         loadTasks();
     }, []);
 
@@ -41,15 +48,21 @@ export default function TasksScreen() {
         if (editingId) {
             setTasks(prev =>
                 prev.map(task =>
-                    task.id === editingId ? { ...task, title: text } : task
+                    task.id === editingId ? { ...task, title: text, dueDate: selectedDate } : task
                 )
             );
             setEditingId(null);
         } else {
-            setTasks([...tasks, { id: Date.now().toString(), title: text, completed: false }]);
+            setTasks([...tasks, {
+                id: Date.now().toString(),
+                title: text,
+                completed: false,
+                dueDate: selectedDate,
+            }]);
         }
 
         setText('');
+        setSelectedDate(new Date().toISOString().split('T')[0]);
     };
 
     const deleteTask = (id: string) => {
@@ -60,8 +73,9 @@ export default function TasksScreen() {
         }
     };
 
-    const editTask = (task: Task) => {
+    const editTask = (task: TaskType) => {
         setText(task.title);
+        setSelectedDate(task.dueDate || new Date().toISOString().split('T')[0]);
         setEditingId(task.id);
     };
 
@@ -79,9 +93,27 @@ export default function TasksScreen() {
             <TextInput
                 value={text}
                 onChangeText={setText}
-                placeholder='New task'
+                placeholder="New task"
                 style={styles.input}
             />
+            {/* Fecha (en web usamos input nativo HTML) */}
+            <View style={styles.dateSection}>
+                <Text style={styles.dateLabel}>Due Date:</Text>
+                {Platform.OS === 'web' ? (
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        style={styles.webDateInput as React.CSSProperties}
+                    />
+                ) : (
+                    <TextInput
+                        value={selectedDate}
+                        editable={false}
+                        style={styles.input}
+                    />
+                )}
+            </View>
             <Button
                 color={editingId ? "#ffa500" : "#333"}
                 title={editingId ? "Update Task" : "Add Task"}
@@ -93,9 +125,14 @@ export default function TasksScreen() {
                 keyExtractor={item => item.id}
                 renderItem={({ item }) => (
                     <View style={styles.task}>
-                        <Text style={styles.textTask}>
-                            {item.title}
-                        </Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.textTask]}>
+                                {item.title}
+                            </Text>
+                            {item.dueDate && (
+                                <Text style={styles.dueDate}>Due: {item.dueDate}</Text>
+                            )}
+                        </View>
                         <View style={styles.buttons}>
                             <Button
                                 color={item.completed ? "#999" : "#0a0"}
@@ -123,8 +160,26 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderRadius: 5,
     },
+    dateSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    dateLabel: {
+        color: '#ccc',
+        fontSize: 16,
+    },
+    webDateInput: {
+        padding: 8,
+        borderRadius: 5,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        fontSize: 16,
+    },
     flatList: {
         marginTop: 12,
+        height: 500,
     },
     task: {
         flexDirection: 'row',
@@ -138,15 +193,18 @@ const styles = StyleSheet.create({
     },
     textTask: {
         color: '#ccc',
-        flex: 1,
         textDecorationLine: 'none',
     },
     completedText: {
         textDecorationLine: 'line-through',
         color: '#888',
     },
+    dueDate: {
+        color: '#aaa',
+        fontSize: 12,
+    },
     buttons: {
-        flexDirection: 'row',
-        gap: 6,
-    }
+        flexDirection: 'column',
+        gap: 4,
+    },
 });
