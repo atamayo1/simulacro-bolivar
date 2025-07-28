@@ -1,25 +1,75 @@
-import React, { useState } from 'react';
+import { Task } from '@/interfaces/tasks';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { HeaderTitle } from '@react-navigation/elements';
+import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 
 export default function TasksScreen() {
     const [text, setText] = useState<string>('');
     const [tasks, setTasks] = useState<{ id: string, title: string }[]>([]);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-    const addTask = () => {
+    useEffect(() => {
+        const loadTasks = async () => {
+            try {
+                const storedTasks = await AsyncStorage.getItem('tasks');
+                if (storedTasks) {
+                    setTasks(JSON.parse(storedTasks));
+                }
+            } catch (error) {
+                console.error('Error loading tasks', error);
+            }
+        }
+        loadTasks();
+    }, [])
+
+    useEffect(() => {
+        const saveTasks = async () => {
+            try {
+                await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
+            } catch (error) {
+                console.error('Error saving tasks', error)
+            }
+        };
+        saveTasks();
+    }, [tasks])
+
+    const addOrUpdateTask = () => {
         if (!text.trim()) return;
-        setTasks([...tasks, { id: Date.now().toString(), title: text }]);
-        setText('');
-    }
 
+        if (editingId) {
+            setTasks(prev =>
+                prev.map(task =>
+                    task.id === editingId ? { ...task, title: text } : task
+                )
+            );
+            setEditingId(null);
+        } else {
+            setTasks([...tasks, { id: Date.now().toString(), title: text }]);
+        }
+
+        setText('');
+    };
     const deleteTask = (id: string) => {
         setTasks(tasks.filter(t => t.id !== id));
-    }
+        if (editingId === id) {
+            setEditingId(null);
+            setText('');
+        }
+    };
+
+    const editTask = (task: Task) => {
+        setText(task.title);
+        setEditingId(task.id);
+    };
 
     return (
         <View style={styles.container}>
+            <HeaderTitle style={styles.headerTitle}>Task List</HeaderTitle>
             <TextInput value={text} onChangeText={setText} placeholder='New task' style={styles.input}></TextInput>
-            <Button color="#333" title="Add" onPress={addTask} />
+            <Button color={editingId ? "#ffa500" : "#333"}
+                title={editingId ? "Update Task" : "Add Task"} onPress={addOrUpdateTask} />
             <br />
             <FlatList
                 data={tasks}
@@ -27,7 +77,10 @@ export default function TasksScreen() {
                 renderItem={({ item }) => (
                     <View style={styles.task}>
                         <Text style={styles.textTask}>{item.title}</Text>
-                        <Button color="#f00" title="Delete" onPress={() => deleteTask(item.id)} />
+                        <View style={styles.buttons}>
+                            <Button color="#333" title="Edit" onPress={() => editTask(item)} />
+                            <Button color="#f00" title="Delete" onPress={() => deleteTask(item.id)} />
+                        </View>
                     </View>
                 )}
             />
@@ -35,9 +88,27 @@ export default function TasksScreen() {
     )
 }
 
+
 const styles = StyleSheet.create({
     container: { padding: 16 },
-    input: { backgroundColor: '#fff', borderColor: '#ccc', borderWidth: 1, padding: 8, marginBottom: 12, borderRadius: 5 },
-    task: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    textTask: { color: '#ccc' }
-})
+    headerTitle: { color: '#fff', fontSize: 24, marginBottom: 20, height: 40 },
+    input: {
+        backgroundColor: '#fff',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        padding: 8,
+        marginBottom: 12,
+        borderRadius: 5,
+    },
+    task: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    textTask: { color: '#ccc', flex: 1 },
+    buttons: {
+        flexDirection: 'row',
+        gap: 6,
+    }
+});

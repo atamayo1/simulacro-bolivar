@@ -1,4 +1,5 @@
 import { User } from '@/interfaces/users';
+import { HeaderTitle } from '@react-navigation/elements';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, FlatList, StyleSheet, Text, View } from 'react-native';
@@ -20,6 +21,7 @@ export default function UsersScreen() {
 
     return (
         <View style={styles.container}>
+            <HeaderTitle style={styles.headerTitle}>User List</HeaderTitle>
             {
                 loading ? (
                     <ActivityIndicator size="large" color="#333" />
@@ -49,6 +51,7 @@ export default function UsersScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 17 },
+    headerTitle: { color: '#fff', fontSize: 24, marginBottom: 20, height: 40 },
     users: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, backgroundColor: '#555', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 5 },
     headerUser: { padding: 17, borderRadius: 5 },
     nameUser: { color: '#ccc' },
