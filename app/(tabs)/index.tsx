@@ -123,7 +123,7 @@ export default function TasksScreen() {
                 renderItem={({ item }) => (
                     <View style={styles.task}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.textTask]}>
+                            <Text style={[styles.textTask, item.completed && styles.completedText]}>
                                 {item.title}
                             </Text>
                             {item.dueDate && (
