@@ -1,19 +1,13 @@
+import { Task } from '@/interfaces/tasks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HeaderTitle } from '@react-navigation/elements';
 import React, { useEffect, useState } from 'react';
 import { Button, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 
-type TaskType = {
-    id: string;
-    title: string;
-    completed: boolean;
-    dueDate?: string;
-};
-
 export default function TasksScreen() {
     const [text, setText] = useState('');
-    const [tasks, setTasks] = useState<TaskType[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
@@ -22,7 +16,10 @@ export default function TasksScreen() {
             try {
                 const storedTasks = await AsyncStorage.getItem('tasks');
                 if (storedTasks) {
-                    setTasks(JSON.parse(storedTasks));
+                    let tasksSorted = JSON.parse(storedTasks).sort((a: Task, b: Task) =>
+                        new Date(a.dueDate ?? '').getTime() - new Date(b.dueDate ?? '').getTime()
+                    );
+                    setTasks(tasksSorted);
                 }
             } catch (error) {
                 console.error('Error loading tasks', error);
@@ -73,7 +70,7 @@ export default function TasksScreen() {
         }
     };
 
-    const editTask = (task: TaskType) => {
+    const editTask = (task: Task) => {
         setText(task.title);
         setSelectedDate(task.dueDate || new Date().toISOString().split('T')[0]);
         setEditingId(task.id);
@@ -145,6 +142,7 @@ export default function TasksScreen() {
                     </View>
                 )}
             />
+
         </View>
     );
 }
