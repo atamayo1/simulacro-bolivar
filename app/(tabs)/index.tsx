@@ -17,7 +17,7 @@ export default function TasksScreen() {
                 const storedTasks = await AsyncStorage.getItem('tasks');
                 if (storedTasks) {
                     let tasksSorted = JSON.parse(storedTasks).sort((a: Task, b: Task) =>
-                        new Date(a.dueDate ?? '').getTime() - new Date(b.dueDate ?? '').getTime()
+                        new Date(b.dueDate ?? '').getTime() - new Date(a.dueDate ?? '').getTime()
                     );
                     setTasks(tasksSorted);
                 }
